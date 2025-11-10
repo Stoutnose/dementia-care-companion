@@ -1,0 +1,49 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f4f7fb;
+  display: flex;
+  justify-content: center;
+}
+.app { max-width: 480px; width: 100%; padding: 16px; }
+.card {
+  background: #ffffff;
+  margin-bottom: 12px;
+  padding: 14px 16px 16px;
+  border-radius: 18px;
+  box-shadow: 0 4px 14px rgba(15,23,42,0.12);
+}
+h1, h2 { margin: 0 0 6px; color: #111827; }
+h1 { font-size: 1.8rem; }
+h2 { font-size: 1.2rem; }
+.clock { font-size: 1.6rem; font-weight: 600; }
+.sub { font-size: 0.95rem; color: #4b5563; }
+.btn {
+  width: 100%;
+  padding: 12px 10px;
+  margin: 4px 0;
+  border: none;
+  border-radius: 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-main { background: #2563eb; color: #fff; }
+.btn-soft { background: #dbeafe; color: #2563eb; }
+.btn-danger { background: #dc2626; color: #fff; }
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  margin: 4px 0 6px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.95rem;
+}
+.label { font-size: 0.8rem; color: #6b7280; }
+.item {
+  background: #f9fafb;
+  padding: 6px 8px;
+  margin: 4px 0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
