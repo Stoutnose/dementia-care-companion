@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dementia Care Companion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="A calm companion for orientation, reminders, family faces, and caregiver help.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <section id="tab-home" class="tab is-active">
+    <div class="card greet-card">
+      <p id="greeting" class="kicker">Hello</p>
+      <h1 id="helloName">Hello 👋</h1>
+      <div id="clock" class="clock">--:--</div>
+      <div id="dayText" class="sub">Today is ...</div>
+      <div id="placeText" class="place-chip">You are safe</div>
+    </div>
+
+    <div id="noteCard" class="card note-card hidden">
+      <h2>A note for you</h2>
+      <p id="noteText" class="note-body"></p>
+      <p id="noteAuthor" class="sub"></p>
+      <button class="btn btn-soft" type="button" data-action="read-note">🔊 Read this note</button>
+    </div>
+
+    <div class="card next-card">
+      <h2>Next up</h2>
+      <div id="nextUp" class="next-up">Looking at your day…</div>
+    </div>
+
+    <div class="card">
+      <h2>Quick Help</h2>
+      <button class="btn btn-soft" type="button" data-action="confused">🧘 I Feel Confused</button>
+      <button class="btn btn-soft" type="button" data-action="read-plan">📅 Today’s Plan</button>
+      <button class="btn btn-soft" type="button" data-action="breathe">🌬️ Breathe With Me</button>
+      <button class="btn btn-ok" type="button" data-action="check-in">✅ I Am Okay</button>
+      <button class="btn btn-danger" type="button" data-action="sos">🚨 SOS – Call Helper</button>
+      <button class="btn btn-warn" type="button" data-action="text-helper">💬 Text Helper</button>
+    </div>
+
+    <div class="card">
+      <h2>Stay Calm</h2>
+      <p id="calmText" class="sub">
+        You are safe. You are cared for. Breathe in slowly… and out slowly…
+        Look at something familiar in the room. You are not alone.
+      </p>
+      <button class="btn btn-soft" type="button" data-action="read-calm">🔊 Read This</button>
+    </div>
+  </section>
+
+  <section id="tab-today" class="tab">
+    <div class="card">
+      <h2>Today’s Routine</h2>
+      <p class="sub">Tap an item when it is done. It resets tomorrow.</p>
+      <div id="scheduleList"></div>
+      <details class="setup">
+        <summary>Add a routine item</summary>
+        <label class="label" for="schedText">What</label>
+        <input id="schedText" class="input" placeholder="Afternoon walk">
+        <label class="label" for="schedTime">Time</label>
+        <input id="schedTime" class="input" type="time">
+        <button class="btn btn-main" type="button" data-action="add-schedule">Add to routine</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Medicines</h2>
+      <div id="medList"></div>
+      <details class="setup">
+        <summary>Add a medicine</summary>
+        <label class="label" for="medName">Medicine name</label>
+        <input id="medName" class="input" placeholder="Blood pressure tablet">
+        <label class="label" for="medWhen">When</label>
+        <select id="medWhen" class="input">
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Night">Night</option>
+        </select>
+        <button class="btn btn-main" type="button" data-action="add-med">Add medicine</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Meals</h2>
+      <div class="meal-row" id="mealRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>Water</h2>
+      <p class="sub">Tap a glass each time you drink.</p>
+      <div id="waterRow" class="water-row"></div>
+      <p id="waterText" class="sub"></p>
+    </div>
+
+    <div class="card">
+      <h2>How do you feel?</h2>
+      <div class="mood-row" id="moodRow"></div>
+      <p id="moodText" class="sub"></p>
+    </div>
+
+    <div class="card">
+      <h2>Reminders</h2>
+      <label class="label" for="remText">Reminder</label>
+      <input id="remText" class="input" placeholder="Take medicine at 9:00">
+      <label class="label" for="remTime">Time</label>
+      <input id="remTime" class="input" type="time">
+      <button class="btn btn-main" type="button" data-action="add-reminder">Add Reminder</button>
+      <div id="reminders"></div>
+    </div>
+  </section>
+
+  <section id="tab-people" class="tab">
+    <div class="card">
+      <h2>People I Know</h2>
+      <p class="sub">Tap a photo to hear who they are.</p>
+      <div id="peopleGrid" class="people-grid"></div>
+      <details class="setup">
+        <summary>Add a person</summary>
+        <label class="label" for="personName">Name</label>
+        <input id="personName" class="input" placeholder="Anna">
+        <label class="label" for="personRelation">Who they are to me</label>
+        <input id="personRelation" class="input" placeholder="My daughter">
+        <label class="label" for="personNote">Something kind to remember</label>
+        <input id="personNote" class="input" placeholder="She visits on Sundays">
+        <label class="label" for="personPhoto">Photo</label>
+        <input id="personPhoto" class="input" type="file" accept="image/*">
+        <button class="btn btn-main" type="button" data-action="add-person">Save person</button>
+      </details>
+    </div>
+  </section>
+
+  <section id="tab-me" class="tab">
+    <div class="card id-card" id="idCard">
+      <h2>This is me</h2>
+      <div id="idBody"></div>
+    </div>
+
+    <div class="card">
+      <h2>Medical notes</h2>
+      <div id="medInfo" class="info-block"></div>
+    </div>
+
+    <div class="card">
+      <h2>My story</h2>
+      <p id="storyText" class="sub">A caregiver can write a short life story here.</p>
+      <button class="btn btn-soft" type="button" data-action="read-story">🔊 Read my story</button>
+    </div>
+
+    <div class="card">
+      <h2>Caregiver setup</h2>
+      <p class="sub">Fill this in once. It helps with orientation if someone feels lost.</p>
+      <label class="label" for="profileName">My name</label>
+      <input id="profileName" class="input" placeholder="Robert">
+      <label class="label" for="profileAddress">I live at</label>
+      <input id="profileAddress" class="input" placeholder="12 Park Lane, home">
+      <label class="label" for="profileAllergies">Allergies or conditions</label>
+      <input id="profileAllergies" class="input" placeholder="Diabetes. Allergic to penicillin.">
+      <label class="label" for="profileDoctor">Doctor</label>
+      <input id="profileDoctor" class="input" placeholder="Dr. Shah, 98765 43210">
+      <label class="label" for="profileStory">My story</label>
+      <textarea id="profileStory" class="input textarea" rows="4" placeholder="I was a teacher. I have a daughter named Anna. I like tea and the garden."></textarea>
+      <label class="label" for="profilePhoto">My photo</label>
+      <input id="profilePhoto" class="input" type="file" accept="image/*">
+      <button class="btn btn-main" type="button" data-action="save-profile">Save who I am</button>
+    </div>
+  </section>
+
+  <section id="tab-more" class="tab">
+    <div class="card">
+      <h2>Helper Contact</h2>
+      <label class="label" for="helperName">Name</label>
+      <input id="helperName" class="input" placeholder="Anna">
+      <label class="label" for="helperPhone">Phone</label>
+      <input id="helperPhone" class="input" placeholder="+91 90000 00000">
+      <button class="btn btn-main" type="button" data-action="save-helper">Save Helper</button>
+      <div id="helperDisplay" class="sub"></div>
+    </div>
+
+    <div class="card">
+      <h2>Caregiver note</h2>
+      <p class="sub">This shows on the home screen, like a message on the fridge.</p>
+      <label class="label" for="careNote">Note</label>
+      <textarea id="careNote" class="input textarea" rows="3" placeholder="Dad, we will visit at 4pm. Love, Anna"></textarea>
+      <label class="label" for="careAuthor">From</label>
+      <input id="careAuthor" class="input" placeholder="Anna">
+      <button class="btn btn-main" type="button" data-action="save-note">Save note</button>
+    </div>
+
+    <div class="card">
+      <h2>Easier to see</h2>
+      <label class="toggle"><input id="optLarge" type="checkbox"> Larger text</label>
+      <label class="toggle"><input id="optContrast" type="checkbox"> High contrast</label>
+      <label class="toggle"><input id="optNight" type="checkbox"> Night mode</label>
+      <label class="toggle"><input id="optVoice" type="checkbox" checked> Speak out loud</label>
+    </div>
+
+    <div class="card">
+      <h2>Last check-in</h2>
+      <p id="checkInText" class="sub">No check-in yet.</p>
+    </div>
+  </section>
+</div>
+
+<nav class="nav" aria-label="Main">
+  <button class="nav-btn is-active" type="button" data-tab="home">🏠<span>Home</span></button>
+  <button class="nav-btn" type="button" data-tab="today">📅<span>Today</span></button>
+  <button class="nav-btn" type="button" data-tab="people">👪<span>People</span></button>
+  <button class="nav-btn" type="button" data-tab="me">🪪<span>Me</span></button>
+  <button class="nav-btn" type="button" data-tab="more">⚙️<span>More</span></button>
+</nav>
+
+<div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+  <div class="overlay-card">
+    <h2 id="overlayTitle">You are safe</h2>
+    <p id="overlayBody" class="sub"></p>
+    <div id="breathWrap" class="breath-wrap hidden">
+      <div id="breathCircle" class="breath-circle"></div>
+      <p id="breathCue" class="breath-cue">Breathe in</p>
+    </div>
+    <div id="overlayActions" class="overlay-actions"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+</body>
+</html>
