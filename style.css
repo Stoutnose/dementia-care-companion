@@ -243,7 +243,7 @@ h2 { font-size: 1.2rem; }
   width: 100%;
   max-width: 480px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   background: var(--card);
   box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.12);
   padding: 6px 4px calc(8px + env(safe-area-inset-bottom));
@@ -260,7 +260,9 @@ h2 { font-size: 1.2rem; }
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--muted);
-  padding: 8px 2px;
+  padding: 8px 0;
+  min-height: 52px;
+  line-height: 1.1;
   cursor: pointer;
 }
 
@@ -303,7 +305,8 @@ h2 { font-size: 1.2rem; }
 
 .empty { color: var(--muted); padding: 8px 0; }
 
-html.large { font-size: 20px; }
+html.large { font-size: 19px; }
+html.xlarge { font-size: 22px; }
 
 html.night {
   --bg: #151a24;
@@ -344,3 +347,415 @@ html.contrast .btn-main, html.contrast .btn-soft, html.contrast .btn-ok {
   background: #ffe066;
   color: #000;
 }
+
+/* ===================== Added in v3 ===================== */
+
+/* Caregiver lock: hide setup and delete controls from the patient */
+html:not(.carer) .carer-only { display: none !important; }
+html.carer .patient-only { display: none !important; }
+
+/* Keyboard focus that is easy to see */
+:focus-visible {
+  outline: 3px solid var(--main);
+  outline-offset: 2px;
+}
+
+h3 { font-size: 1rem; margin: 12px 0 4px; color: var(--text); }
+
+.time-hint {
+  margin: 10px 0 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.next-up .overdue {
+  color: var(--warn);
+  font-size: 1rem;
+  margin-bottom: 6px;
+}
+html.night .next-up .overdue { color: #fcd34d; }
+
+/* Quick help: two columns of buttons, SOS stays full width below */
+.help-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 6px 0 8px;
+}
+.help-grid .btn { margin: 0; font-size: 1rem; }
+
+.qa-list .btn { text-align: left; padding-left: 14px; }
+
+.btn-done {
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: 0.95rem;
+  min-height: 44px;
+  padding: 8px 14px;
+}
+
+.med-status { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.med-status.ok { color: var(--ok); font-weight: 700; }
+.row-item.is-taken { background: #ecfdf5; }
+html.night .row-item.is-taken { background: #1f3b33; }
+html.contrast .row-item.is-taken { background: #14532d; }
+
+.mood-row { grid-template-columns: repeat(3, 1fr); }
+
+.id-name { font-size: 1.4rem; margin: 0 0 6px; }
+
+/* Overlay content */
+.overlay-card { max-height: 92vh; overflow-y: auto; }
+.overlay-body { color: var(--text); font-size: 1.05rem; line-height: 1.5; }
+.overlay-body p { margin: 8px 0; }
+.big-line { font-size: 1.4rem; font-weight: 800; line-height: 1.35; color: var(--text); }
+.overlay-photo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 8px auto;
+}
+
+.show-card { font-size: 1.35rem; font-weight: 700; line-height: 1.4; color: var(--text); }
+.show-card img {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 8px;
+}
+
+.med-card { text-align: left; }
+.med-card p { margin: 8px 0; font-size: 1rem; }
+
+.pain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.pain-grid .btn { margin: 0; font-size: 0.98rem; }
+
+.pin-input { text-align: center; font-size: 1.6rem; letter-spacing: 0.4em; }
+
+.link-btn {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  line-height: 24px;
+}
+
+/* Caregiver: patterns */
+.alert {
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.alert-danger { background: #fee2e2; color: #7f1d1d; border-left: 5px solid var(--danger); }
+.alert-warn { background: var(--warn-bg); color: #78350f; border-left: 5px solid var(--warn); }
+.alert-ok { background: var(--ok-bg); color: var(--ok); }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+.stat {
+  background: #f9fafb;
+  border-radius: 14px;
+  padding: 8px;
+  text-align: center;
+}
+.stat strong { display: block; font-size: 1.5rem; }
+.stat span { font-size: 0.75rem; color: var(--muted); }
+.stat-note { grid-column: 1 / -1; margin: 0; font-size: 0.8rem; }
+
+.log-list { max-height: 320px; overflow-y: auto; }
+.log-row {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.log-time { color: var(--muted); font-size: 0.8rem; }
+
+.check-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.check-row input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+
+.tight { padding-left: 20px; margin: 4px 0; }
+.tight li { margin: 4px 0; }
+
+/* Night and contrast versions of the new pieces */
+html.night .stat { background: #2c3446; }
+html.night .alert-danger { background: #4c1d1d; color: #fecaca; }
+html.night .alert-warn { background: #422e10; color: #fde68a; }
+html.night .alert-ok { background: #1f3b33; color: #a7f3d0; }
+html.night .btn-done { background: #1f3b33; color: #a7f3d0; }
+html.night .btn-warn { background: #422e10; color: #fde68a; }
+
+html.contrast .stat, html.contrast .alert { background: #000; color: #fff; border: 2px solid #fff; }
+html.contrast .btn-warn, html.contrast .btn-done { background: #ffe066; color: #000; }
+html.contrast .time-hint { color: #ffe066; }
+
+@media (prefers-reduced-motion: reduce) {
+  .breath-circle { transition-duration: 0.01s; }
+  .btn:active { transform: none; }
+}
+
+/* ===================== Added in v4: Care Companion ===================== */
+
+.nav-btn { font-size: 1.15rem; }
+.nav-btn span { font-size: 0.68rem; }
+html.large .nav-btn span, html.xlarge .nav-btn span { font-size: 0.58rem; }
+
+/* Day progress on the home screen */
+.day-progress {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.prog {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 14px;
+  background: #f3f4f6;
+  color: var(--text);
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: pointer;
+  font: inherit;
+}
+.prog strong { font-size: 1rem; }
+.prog span { font-size: 0.75rem; color: var(--muted); }
+.prog .prog-icon { font-size: 1.1rem; color: inherit; }
+.next-up .next-later { margin-top: 6px; font-size: 0.95rem; color: var(--muted); }
+
+/* Health readings */
+.vital-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0;
+}
+.vital {
+  border: 2px solid transparent;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+  min-height: 112px;
+}
+.vital-name { font-size: 0.85rem; font-weight: 700; color: var(--muted); }
+.vital-value { font-size: 1.25rem; line-height: 1.2; }
+.vital-when { font-size: 0.75rem; color: var(--muted); }
+.vital-flag { font-size: 0.78rem; font-weight: 700; }
+.vital .spark { width: 100%; height: 30px; margin-top: auto; color: var(--main); }
+.vital.v-high, .vital.v-low { border-color: var(--warn); background: var(--warn-bg); }
+.vital.v-high .vital-flag, .vital.v-low .vital-flag { color: var(--warn); }
+.vital.v-urgent { border-color: var(--danger); background: #fee2e2; }
+.vital.v-urgent .vital-flag { color: #991b1b; }
+.vital.v-urgent .spark { color: var(--danger); }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Symptoms */
+.symptom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+.chip.sym { min-height: 52px; text-align: left; padding: 8px 12px; }
+
+/* Exercises */
+.link-plain {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.med-status.warn { color: var(--warn); font-weight: 700; }
+
+/* Talk */
+.yn-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 4px;
+}
+.yn { min-height: 72px; font-size: 1.2rem; margin: 0; }
+.yn-yes { background: var(--ok-bg); color: var(--ok); }
+.yn-no { background: #fee2e2; color: #991b1b; }
+.yn-wait { background: var(--warn-bg); color: var(--warn); }
+
+.phrase-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.phrase {
+  border: none;
+  border-radius: 16px;
+  background: #f3f4f6;
+  color: var(--text);
+  padding: 10px;
+  min-height: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.phrase-icon { font-size: 1.8rem; line-height: 1; }
+
+.talk-big {
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 10px 0 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.caption-box {
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #f3f4f6;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.35;
+  min-height: 120px;
+  color: var(--text);
+}
+
+/* Help steps inside pop-ups */
+.steps { text-align: left; padding-left: 22px; margin: 8px 0; }
+.steps li { margin: 6px 0; line-height: 1.45; }
+.overlay-body .alert { text-align: left; }
+.overlay.is-urgent .overlay-card { border-top: 6px solid var(--danger); }
+
+.seizure-clock {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.seizure-clock.over { color: var(--danger); }
+
+.ground-icon { font-size: 3rem; margin: 4px 0; }
+
+.pain-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+/* People */
+.person { position: relative; }
+.person .person-call {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 1rem;
+}
+
+/* Care focus and first-time setup */
+.focus-list .check-row { font-size: 1rem; }
+.setup-flow { text-align: left; }
+.setup-flow p { margin: 4px 0 10px; }
+
+.stat-wide { grid-column: 1 / -1; }
+
+/* Doctor summary */
+.report { text-align: left; font-size: 0.95rem; }
+.report h3 { margin-top: 14px; }
+.table-wrap { overflow-x: auto; }
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.report-table th, .report-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+.report-table th { color: var(--muted); font-weight: 700; }
+
+.print-area { display: none; }
+
+/* Night and contrast versions of the new pieces */
+html.night .prog, html.night .vital, html.night .phrase, html.night .caption-box { background: #2c3446; }
+html.night .vital.v-high, html.night .vital.v-low { background: #422e10; }
+html.night .vital.v-urgent { background: #4c1d1d; }
+html.night .vital.v-urgent .vital-flag { color: #fecaca; }
+html.night .vital.v-high .vital-flag, html.night .vital.v-low .vital-flag { color: #fde68a; }
+html.night .yn-yes { background: #1f3b33; color: #a7f3d0; }
+html.night .yn-no { background: #4c1d1d; color: #fecaca; }
+html.night .yn-wait { background: #422e10; color: #fde68a; }
+html.night .med-status.warn { color: #fcd34d; }
+
+html.contrast .prog, html.contrast .vital, html.contrast .phrase, html.contrast .caption-box,
+html.contrast .chip, html.contrast .mood-btn, html.contrast .glass, html.contrast .person,
+html.contrast .item, html.contrast .row-item {
+  background: #000;
+  color: #fff;
+  border: 2px solid #fff;
+}
+html.contrast .chip.is-on, html.contrast .mood-btn.is-on, html.contrast .glass.is-on { background: #14532d; }
+html.contrast .vital.v-high, html.contrast .vital.v-low { border-color: #ffe066; }
+html.contrast .vital.v-urgent { border-color: #ff4d4d; border-width: 4px; }
+html.contrast .yn-yes, html.contrast .yn-no, html.contrast .yn-wait { background: #ffe066; color: #000; }
+
+@media (max-width: 360px) {
+  .vital-grid, .phrase-grid, .symptom-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .talk-big { font-size: 1.7rem; }
+}
+
+/* Printing the doctor summary */
+@media print {
+  body { display: block; background: #fff; color: #000; }
+  .app, .nav, .overlay { display: none !important; }
+  .print-area { display: block; padding: 0 8mm; font-size: 11pt; }
+  .print-area h1 { font-size: 18pt; margin-bottom: 4px; }
+  .print-area .sub { color: #333; }
+  .print-area .report-table th, .print-area .report-table td { border-bottom: 1px solid #999; }
+}
+
+.row-item.med-item .item-main { flex: 1 1 100%; }
+html.contrast .note-card, html.contrast .next-up { background: #000; color: #fff; border: 2px solid #fff; }
+html.contrast .next-up .overdue, html.contrast .next-up .next-later { color: #ffe066; }

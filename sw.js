@@ -1,10 +1,14 @@
-const CACHE_NAME = "dementia-care-v2";
+const CACHE_NAME = "care-companion-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
-  "./manifest.json"
+  "./manifest.json",
+  "./icon.svg",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./icon-maskable-512.png"
 ];
 
 self.addEventListener("install", (e) => {

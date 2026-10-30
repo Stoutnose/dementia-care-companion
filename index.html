@@ -2,17 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dementia Care Companion</title>
+  <title>Care Companion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="A calm companion for orientation, reminders, family faces, and caregiver help.">
+  <meta name="description" content="A calm companion for people who need extra care: reminders, medicines, health readings, quick help, a talking board, and tools for family and carers.">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Care Companion">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
+
+  <!-- ================= HOME ================= -->
   <section id="tab-home" class="tab is-active">
     <div class="card greet-card">
       <p id="greeting" class="kicker">Hello</p>
@@ -20,6 +26,7 @@
       <div id="clock" class="clock">--:--</div>
       <div id="dayText" class="sub">Today is ...</div>
       <div id="placeText" class="place-chip">You are safe</div>
+      <p id="timeHint" class="time-hint hidden"></p>
     </div>
 
     <div id="noteCard" class="card note-card hidden">
@@ -32,58 +39,99 @@
     <div class="card next-card">
       <h2>Next up</h2>
       <div id="nextUp" class="next-up">Looking at your day…</div>
+      <div id="dayProgress" class="day-progress"></div>
     </div>
 
     <div class="card">
-      <h2>Quick Help</h2>
-      <button class="btn btn-soft" type="button" data-action="confused">🧘 I Feel Confused</button>
-      <button class="btn btn-soft" type="button" data-action="read-plan">📅 Today’s Plan</button>
-      <button class="btn btn-soft" type="button" data-action="breathe">🌬️ Breathe With Me</button>
-      <button class="btn btn-ok" type="button" data-action="check-in">✅ I Am Okay</button>
-      <button class="btn btn-danger" type="button" data-action="sos">🚨 SOS – Call Helper</button>
-      <button class="btn btn-warn" type="button" data-action="text-helper">💬 Text Helper</button>
+      <h2>Quick help</h2>
+      <div class="help-grid">
+        <button class="btn btn-soft" type="button" data-action="confused">🧘 I feel confused</button>
+        <button class="btn btn-soft" type="button" data-action="lost">🧭 I am lost</button>
+        <button class="btn btn-soft" type="button" data-action="hurt">🤕 Something hurts</button>
+        <button class="btn btn-warn" type="button" data-action="fall">⚠️ I fell</button>
+        <button class="btn btn-soft" type="button" data-action="unwell">🤒 I feel unwell</button>
+        <button class="btn btn-soft" type="button" data-action="breathe">🌬️ Breathe with me</button>
+        <button class="btn btn-soft" type="button" data-action="read-plan">📅 Today’s plan</button>
+        <button id="todoBtn" class="btn btn-soft" type="button" data-action="something-to-do">🎨 Something to do</button>
+      </div>
+      <div id="focusHelp" class="help-grid"></div>
+      <button class="btn btn-ok" type="button" data-action="check-in">✅ I am okay</button>
+      <button class="btn btn-danger" type="button" data-action="sos">🚨 SOS – Call helper</button>
+      <div class="help-grid">
+        <button class="btn btn-warn" type="button" data-action="text-helper">💬 Text helper</button>
+        <button class="btn btn-warn" type="button" data-action="alarm">📢 Loud alarm</button>
+      </div>
+    </div>
+
+    <div id="qaCard" class="card hidden">
+      <h2>Questions and answers</h2>
+      <p class="sub">Tap a question to hear the answer.</p>
+      <div id="qaList" class="qa-list"></div>
     </div>
 
     <div class="card">
-      <h2>Stay Calm</h2>
+      <h2>Stay calm</h2>
       <p id="calmText" class="sub">
         You are safe. You are cared for. Breathe in slowly… and out slowly…
         Look at something familiar in the room. You are not alone.
       </p>
-      <button class="btn btn-soft" type="button" data-action="read-calm">🔊 Read This</button>
+      <div class="help-grid">
+        <button class="btn btn-soft" type="button" data-action="read-calm">🔊 Read this</button>
+        <button class="btn btn-soft" type="button" data-action="grounding">🖐️ Notice 5 things</button>
+      </div>
     </div>
   </section>
 
+  <!-- ================= TODAY ================= -->
   <section id="tab-today" class="tab">
+    <div id="apptTodayCard" class="card appt-card hidden">
+      <h2>Appointments soon</h2>
+      <div id="apptSoon"></div>
+    </div>
+
     <div class="card">
-      <h2>Today’s Routine</h2>
-      <p class="sub">Tap an item when it is done. It resets tomorrow.</p>
+      <h2>Medicines</h2>
+      <p class="sub">Tap “Taken” after each one. The time is saved, so you never need to guess.</p>
+      <div id="medList"></div>
+      <details class="setup carer-only">
+        <summary>Add a medicine</summary>
+        <label class="label" for="medName">Medicine name</label>
+        <input id="medName" class="input" placeholder="Blood pressure tablet">
+        <label class="label" for="medDose">Dose</label>
+        <input id="medDose" class="input" placeholder="1 tablet, 5 mg">
+        <label class="label" for="medWhen">Usually taken</label>
+        <select id="medWhen" class="input">
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Evening">Evening</option>
+          <option value="Night">Night</option>
+          <option value="As needed">Only when needed</option>
+        </select>
+        <label class="label" for="medTime">Reminder time (optional)</label>
+        <input id="medTime" class="input" type="time">
+        <label class="label" for="medInstr">Instructions</label>
+        <input id="medInstr" class="input" placeholder="With food. Swallow whole.">
+        <label class="label" for="medGap">For “only when needed”: hours to wait between doses</label>
+        <input id="medGap" class="input" type="number" min="0" max="48" step="0.5" placeholder="4">
+        <label class="label" for="medMax">For “only when needed”: most doses in a day</label>
+        <input id="medMax" class="input" type="number" min="0" max="24" placeholder="4">
+        <label class="label" for="medStock">Doses left in the pack (optional)</label>
+        <input id="medStock" class="input" type="number" min="0" max="9999" placeholder="30">
+        <button class="btn btn-main" type="button" data-action="add-med">Add medicine</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Today’s routine</h2>
+      <p class="sub">Tap “Done” when an item is finished. It resets tomorrow.</p>
       <div id="scheduleList"></div>
-      <details class="setup">
+      <details class="setup carer-only">
         <summary>Add a routine item</summary>
         <label class="label" for="schedText">What</label>
         <input id="schedText" class="input" placeholder="Afternoon walk">
         <label class="label" for="schedTime">Time</label>
         <input id="schedTime" class="input" type="time">
         <button class="btn btn-main" type="button" data-action="add-schedule">Add to routine</button>
-      </details>
-    </div>
-
-    <div class="card">
-      <h2>Medicines</h2>
-      <div id="medList"></div>
-      <details class="setup">
-        <summary>Add a medicine</summary>
-        <label class="label" for="medName">Medicine name</label>
-        <input id="medName" class="input" placeholder="Blood pressure tablet">
-        <label class="label" for="medWhen">When</label>
-        <select id="medWhen" class="input">
-          <option value="Morning">Morning</option>
-          <option value="Afternoon">Afternoon</option>
-          <option value="Evening">Evening</option>
-          <option value="Night">Night</option>
-        </select>
-        <button class="btn btn-main" type="button" data-action="add-med">Add medicine</button>
       </details>
     </div>
 
@@ -108,20 +156,153 @@
     <div class="card">
       <h2>Reminders</h2>
       <label class="label" for="remText">Reminder</label>
-      <input id="remText" class="input" placeholder="Take medicine at 9:00">
+      <input id="remText" class="input" placeholder="Call Anna">
       <label class="label" for="remTime">Time</label>
       <input id="remTime" class="input" type="time">
-      <button class="btn btn-main" type="button" data-action="add-reminder">Add Reminder</button>
+      <button class="btn btn-main" type="button" data-action="add-reminder">Add reminder</button>
       <div id="reminders"></div>
+    </div>
+
+    <div class="card">
+      <h2>Appointments</h2>
+      <div id="apptList"></div>
+      <details class="setup">
+        <summary>Add an appointment</summary>
+        <label class="label" for="apptTitle">What</label>
+        <input id="apptTitle" class="input" placeholder="Eye check-up">
+        <label class="label" for="apptDate">Date</label>
+        <input id="apptDate" class="input" type="date">
+        <label class="label" for="apptTime">Time</label>
+        <input id="apptTime" class="input" type="time">
+        <label class="label" for="apptPlace">Where</label>
+        <input id="apptPlace" class="input" placeholder="City Hospital, 2nd floor">
+        <label class="label" for="apptNote">Bring or remember</label>
+        <input id="apptNote" class="input" placeholder="Bring medicine list and reports">
+        <button class="btn btn-main" type="button" data-action="add-appt">Save appointment</button>
+      </details>
     </div>
   </section>
 
-  <section id="tab-people" class="tab">
+  <!-- ================= HEALTH ================= -->
+  <section id="tab-health" class="tab">
     <div class="card">
-      <h2>People I Know</h2>
-      <p class="sub">Tap a photo to hear who they are.</p>
+      <h2>Health readings</h2>
+      <p class="sub">Write down a reading after you take it. Readings outside the usual range are marked.</p>
+      <div id="vitalCards" class="vital-grid"></div>
+      <details id="vitalForm" class="setup">
+        <summary>Add a reading</summary>
+        <label class="label" for="vitalType">Type</label>
+        <select id="vitalType" class="input"></select>
+        <div id="vitalInputs"></div>
+        <label class="label" for="vitalNote">Note (optional)</label>
+        <input id="vitalNote" class="input" placeholder="Before breakfast">
+        <button class="btn btn-main" type="button" data-action="add-vital">Save reading</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>How is your body today?</h2>
+      <p class="sub">Tap anything you notice. It helps your carer and doctor.</p>
+      <div id="symptomGrid" class="symptom-grid"></div>
+      <div id="symptomToday" class="sub"></div>
+    </div>
+
+    <div class="card">
+      <h2>Last night’s sleep</h2>
+      <div id="sleepRow" class="mood-row"></div>
+      <label class="label" for="sleepHours">Hours of sleep</label>
+      <input id="sleepHours" class="input" type="number" min="0" max="16" step="0.5" placeholder="7">
+      <p id="sleepText" class="sub"></p>
+    </div>
+
+    <div class="card">
+      <h2>Toilet</h2>
+      <p class="sub">A private record. Changes in toilet habits can be an early sign of illness.</p>
+      <div class="help-grid">
+        <button class="btn btn-soft" type="button" data-action="bowel">✓ Bowels opened today</button>
+        <button class="btn btn-soft" type="button" data-action="bladder-issue">🚻 Problem passing urine</button>
+      </div>
+      <p id="bowelText" class="sub"></p>
+    </div>
+
+    <div class="card">
+      <h2>Exercises</h2>
+      <p class="sub">Gentle movement your physio or doctor suggested.</p>
+      <div id="exerciseList"></div>
+      <details class="setup carer-only">
+        <summary>Add an exercise</summary>
+        <label class="label" for="exText">Exercise</label>
+        <input id="exText" class="input" placeholder="Ankle circles, 10 each side">
+        <label class="label" for="exHow">How to do it</label>
+        <input id="exHow" class="input" placeholder="Sit in a chair. Lift one foot and draw circles.">
+        <button class="btn btn-main" type="button" data-action="add-ex">Add exercise</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>For the doctor</h2>
+      <p class="sub">A summary of readings, medicines, symptoms and events, ready to show, print or send.</p>
+      <div class="help-grid">
+        <button class="btn btn-main" type="button" data-action="report" data-days="7">📋 Last 7 days</button>
+        <button class="btn btn-soft" type="button" data-action="report" data-days="30">📋 Last 30 days</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TALK ================= -->
+  <section id="tab-talk" class="tab">
+    <div class="card">
+      <h2>Talk for me</h2>
+      <p class="sub">Tap a picture to say it out loud and show it in big letters.</p>
+      <div class="yn-row">
+        <button class="btn yn yn-yes" type="button" data-action="say-phrase" data-text="Yes">👍 Yes</button>
+        <button class="btn yn yn-no" type="button" data-action="say-phrase" data-text="No">👎 No</button>
+        <button class="btn yn yn-wait" type="button" data-action="say-phrase" data-text="Please wait. I need a moment.">✋ Wait</button>
+      </div>
+      <div id="phraseBoard"></div>
+    </div>
+
+    <div class="card">
+      <h2>Type it</h2>
+      <label class="label" for="typeSay">What do you want to say?</label>
+      <textarea id="typeSay" class="input textarea" rows="2" placeholder="Could you open the window, please?"></textarea>
+      <div class="help-grid">
+        <button class="btn btn-main" type="button" data-action="type-speak">🔊 Say it</button>
+        <button class="btn btn-soft" type="button" data-action="type-show">🔠 Show it big</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Hear and read</h2>
+      <p class="sub">For hard of hearing. Hold the phone near the person speaking. Their words appear in big letters.</p>
+      <button id="captionBtn" class="btn btn-main" type="button" data-action="captions">👂 Start listening</button>
+      <div id="captionBox" class="caption-box hidden" aria-live="polite"></div>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Add a phrase</h2>
+      <label class="label" for="phraseText">Phrase</label>
+      <input id="phraseText" class="input" placeholder="I would like my glasses">
+      <label class="label" for="phraseIcon">Picture (one emoji)</label>
+      <input id="phraseIcon" class="input" maxlength="4" placeholder="👓">
+      <button class="btn btn-main" type="button" data-action="add-phrase">Add phrase</button>
+      <div id="phraseEdit"></div>
+    </div>
+  </section>
+
+  <!-- ================= ME ================= -->
+  <section id="tab-me" class="tab">
+    <div class="card id-card" id="idCard">
+      <h2>This is me</h2>
+      <div id="idBody"></div>
+      <button class="btn btn-soft" type="button" data-action="show-card">🪪 Show this to someone who can help</button>
+    </div>
+
+    <div class="card">
+      <h2>People I know</h2>
+      <p class="sub">Tap a photo to hear who they are, or to call them.</p>
       <div id="peopleGrid" class="people-grid"></div>
-      <details class="setup">
+      <details class="setup carer-only">
         <summary>Add a person</summary>
         <label class="label" for="personName">Name</label>
         <input id="personName" class="input" placeholder="Anna">
@@ -129,22 +310,18 @@
         <input id="personRelation" class="input" placeholder="My daughter">
         <label class="label" for="personNote">Something kind to remember</label>
         <input id="personNote" class="input" placeholder="She visits on Sundays">
+        <label class="label" for="personPhone">Phone (optional)</label>
+        <input id="personPhone" class="input" type="tel" placeholder="+91 90000 00000">
         <label class="label" for="personPhoto">Photo</label>
         <input id="personPhoto" class="input" type="file" accept="image/*">
         <button class="btn btn-main" type="button" data-action="add-person">Save person</button>
       </details>
     </div>
-  </section>
-
-  <section id="tab-me" class="tab">
-    <div class="card id-card" id="idCard">
-      <h2>This is me</h2>
-      <div id="idBody"></div>
-    </div>
 
     <div class="card">
       <h2>Medical notes</h2>
       <div id="medInfo" class="info-block"></div>
+      <button class="btn btn-soft" type="button" data-action="med-card">🩺 Show to a doctor or paramedic</button>
     </div>
 
     <div class="card">
@@ -153,17 +330,37 @@
       <button class="btn btn-soft" type="button" data-action="read-story">🔊 Read my story</button>
     </div>
 
-    <div class="card">
-      <h2>Caregiver setup</h2>
-      <p class="sub">Fill this in once. It helps with orientation if someone feels lost.</p>
+    <div class="card carer-only">
+      <h2>About me – setup</h2>
+      <p class="sub">Fill this in once. It is used by the help buttons, and with doctors, paramedics or police.</p>
       <label class="label" for="profileName">My name</label>
       <input id="profileName" class="input" placeholder="Robert">
+      <label class="label" for="profileDob">Date of birth</label>
+      <input id="profileDob" class="input" type="date">
       <label class="label" for="profileAddress">I live at</label>
       <input id="profileAddress" class="input" placeholder="12 Park Lane, home">
-      <label class="label" for="profileAllergies">Allergies or conditions</label>
-      <input id="profileAllergies" class="input" placeholder="Diabetes. Allergic to penicillin.">
+      <label class="label" for="profileDiagnosis">Main health conditions</label>
+      <input id="profileDiagnosis" class="input" placeholder="Type 2 diabetes, heart failure, early memory loss">
+      <label class="label" for="profileAllergies">Allergies</label>
+      <input id="profileAllergies" class="input" placeholder="Allergic to penicillin">
+      <label class="label" for="profileAvoid">Medicines to avoid or use with care</label>
+      <input id="profileAvoid" class="input" placeholder="Strong sleeping pills made him very confused">
+      <label class="label" for="profileBlood">Blood group</label>
+      <select id="profileBlood" class="input">
+        <option value="">Not known</option>
+        <option>A+</option><option>A−</option><option>B+</option><option>B−</option>
+        <option>AB+</option><option>AB−</option><option>O+</option><option>O−</option>
+      </select>
+      <label class="label" for="profileDevices">Devices and aids</label>
+      <input id="profileDevices" class="input" placeholder="Pacemaker, hearing aids, walking frame">
+      <label class="label" for="profileLanguage">Languages I speak</label>
+      <input id="profileLanguage" class="input" placeholder="Telugu, English">
+      <label class="label" for="profileHowTo">How best to help me</label>
+      <textarea id="profileHowTo" class="input textarea" rows="2" placeholder="Speak slowly and face me. Give me time to answer. I may not understand long sentences."></textarea>
       <label class="label" for="profileDoctor">Doctor</label>
       <input id="profileDoctor" class="input" placeholder="Dr. Shah, 98765 43210">
+      <label class="label" for="profileWishes">Important wishes</label>
+      <input id="profileWishes" class="input" placeholder="Advance directive is with my daughter">
       <label class="label" for="profileStory">My story</label>
       <textarea id="profileStory" class="input textarea" rows="4" placeholder="I was a teacher. I have a daughter named Anna. I like tea and the garden."></textarea>
       <label class="label" for="profilePhoto">My photo</label>
@@ -172,18 +369,72 @@
     </div>
   </section>
 
-  <section id="tab-more" class="tab">
+  <!-- ================= CARE (caregiver) ================= -->
+  <section id="tab-care" class="tab">
     <div class="card">
-      <h2>Helper Contact</h2>
+      <h2>Caregiver tools</h2>
+      <p id="lockText" class="sub"></p>
+      <button class="btn btn-main patient-only" type="button" data-action="unlock">🔓 Unlock caregiver tools</button>
+      <details class="setup carer-only">
+        <summary>Set or change the PIN</summary>
+        <p class="sub">A PIN stops settings being changed or deleted by accident. Leave it empty to turn the lock off.</p>
+        <label class="label" for="newPin">PIN (4 to 8 digits)</label>
+        <input id="newPin" class="input" type="password" inputmode="numeric" autocomplete="off" maxlength="8">
+        <button class="btn btn-main" type="button" data-action="save-pin">Save PIN</button>
+      </details>
+      <button class="btn btn-soft carer-only" type="button" data-action="lock-now">🔒 Lock now</button>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Care focus</h2>
+      <p class="sub">Choose what applies. The app adds the right help buttons, health readings, ID card lines and safety tips.</p>
+      <div id="focusList" class="focus-list"></div>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Patterns and warning signs</h2>
+      <p class="sub">Built from what is recorded in this app. Share it with the doctor.</p>
+      <div id="alerts"></div>
+      <div id="stats" class="stat-grid"></div>
+      <div id="topQuestions"></div>
+      <button class="btn btn-soft" type="button" data-action="report" data-days="7">📋 Doctor summary</button>
+      <details class="setup">
+        <summary>Recent events</summary>
+        <div id="logList" class="log-list"></div>
+        <button class="btn btn-tiny" type="button" data-action="clear-log">Clear history</button>
+      </details>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Helper contacts</h2>
       <label class="label" for="helperName">Name</label>
       <input id="helperName" class="input" placeholder="Anna">
       <label class="label" for="helperPhone">Phone</label>
-      <input id="helperPhone" class="input" placeholder="+91 90000 00000">
-      <button class="btn btn-main" type="button" data-action="save-helper">Save Helper</button>
+      <input id="helperPhone" class="input" type="tel" placeholder="+91 90000 00000">
+      <label class="label" for="backupName">Backup helper name</label>
+      <input id="backupName" class="input" placeholder="Ravi (neighbour)">
+      <label class="label" for="backupPhone">Backup helper phone</label>
+      <input id="backupPhone" class="input" type="tel" placeholder="+91 90000 11111">
+      <label class="label" for="emergencyNumber">Emergency number</label>
+      <input id="emergencyNumber" class="input" type="tel" placeholder="112">
+      <label class="label" for="crisisName">Support line name (optional)</label>
+      <input id="crisisName" class="input" placeholder="Tele-MANAS mental health line">
+      <label class="label" for="crisisPhone">Support line number</label>
+      <input id="crisisPhone" class="input" type="tel" placeholder="14416">
+      <button class="btn btn-main" type="button" data-action="save-helper">Save contacts</button>
       <div id="helperDisplay" class="sub"></div>
     </div>
 
-    <div class="card">
+    <div class="card carer-only">
+      <h2>Daily safety check-ins</h2>
+      <p class="sub">At these times the app asks “Are you okay?”. If nobody answers within 5 minutes, it sounds an alarm so people nearby notice, and shows an alert.</p>
+      <label class="label" for="checkTime">Check-in time</label>
+      <input id="checkTime" class="input" type="time">
+      <button class="btn btn-main" type="button" data-action="add-checktime">Add check-in time</button>
+      <div id="checkTimes"></div>
+    </div>
+
+    <div class="card carer-only">
       <h2>Caregiver note</h2>
       <p class="sub">This shows on the home screen, like a message on the fridge.</p>
       <label class="label" for="careNote">Note</label>
@@ -193,15 +444,134 @@
       <button class="btn btn-main" type="button" data-action="save-note">Save note</button>
     </div>
 
-    <div class="card">
-      <h2>Easier to see</h2>
-      <label class="toggle"><input id="optLarge" type="checkbox"> Larger text</label>
-      <label class="toggle"><input id="optContrast" type="checkbox"> High contrast</label>
-      <label class="toggle"><input id="optNight" type="checkbox"> Night mode</label>
-      <label class="toggle"><input id="optVoice" type="checkbox" checked> Speak out loud</label>
+    <div class="card carer-only">
+      <h2>Handover notes</h2>
+      <p class="sub">When more than one person helps, write what happened during your shift so the next person knows.</p>
+      <label class="label" for="jText">Note</label>
+      <textarea id="jText" class="input textarea" rows="3" placeholder="Ate half of lunch. Slept 2–3pm. Seemed more tired than usual."></textarea>
+      <label class="label" for="jAuthor">Written by</label>
+      <input id="jAuthor" class="input" placeholder="Priya">
+      <button class="btn btn-main" type="button" data-action="add-journal">Save note</button>
+      <div id="journalList" class="log-list"></div>
     </div>
 
-    <div class="card">
+    <div class="card carer-only">
+      <h2>Answers to repeated questions</h2>
+      <p class="sub">If the same question comes up again and again, write a calm answer once. It appears on the home screen and can be heard any time.</p>
+      <label class="label" for="qaQ">Question</label>
+      <input id="qaQ" class="input" placeholder="Where is Anna?">
+      <label class="label" for="qaA">Answer</label>
+      <textarea id="qaA" class="input textarea" rows="2" placeholder="Anna is at work. She comes home at 6 o’clock. She loves you."></textarea>
+      <button class="btn btn-main" type="button" data-action="add-qa">Add question</button>
+      <div id="qaEdit"></div>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Things they enjoy</h2>
+      <p class="sub">Simple, familiar activities help with boredom, low mood and restlessness. “Something to do” on the home screen picks one.</p>
+      <label class="label" for="actText">Activity</label>
+      <input id="actText" class="input" placeholder="Sort the button tin">
+      <button class="btn btn-main" type="button" data-action="add-act">Add activity</button>
+      <div id="actEdit"></div>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Health reading ranges</h2>
+      <p class="sub">The usual ranges are general guides for adults. Ask the doctor for personal targets and change them here.</p>
+      <div class="two-col">
+        <div>
+          <label class="label" for="unitSugar">Blood sugar unit</label>
+          <select id="unitSugar" class="input"><option value="mgdl">mg/dL</option><option value="mmol">mmol/L</option></select>
+        </div>
+        <div>
+          <label class="label" for="unitTemp">Temperature unit</label>
+          <select id="unitTemp" class="input"><option value="C">°C</option><option value="F">°F</option></select>
+        </div>
+      </div>
+      <div id="rangeEdit"></div>
+      <button class="btn btn-main" type="button" data-action="save-ranges">Save ranges</button>
+      <button class="btn btn-soft" type="button" data-action="reset-ranges">Use the usual ranges</button>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Home safety checklist</h2>
+      <div id="safetyList" class="check-list"></div>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Planning ahead</h2>
+      <p class="sub">Easier to do early, while your person can take part in decisions.</p>
+      <div id="planList" class="check-list"></div>
+    </div>
+
+    <div class="card carer-only care-self">
+      <h2>Looking after yourself</h2>
+      <p class="sub">Caring for someone is hard work. Take regular breaks, accept offers of help, and look for a local caregiver support group, respite care or day program. If you feel exhausted, low or short-tempered most days, see your own doctor. This is very common, and help works.</p>
+      <h3>Call the doctor soon if you notice</h3>
+      <ul class="sub tight">
+        <li>Sudden confusion, drowsiness or a change in behaviour over hours or days. This is often an infection, dehydration, constipation, pain or a new medicine.</li>
+        <li>A fall, especially with a knock to the head or if they take blood thinners</li>
+        <li>Fever, a new cough, or breathing that is faster or harder than usual</li>
+        <li>Coughing or choking when eating or drinking</li>
+        <li>Not eating or drinking, weight loss, or sudden weight gain or swollen ankles</li>
+        <li>A red, painful or broken area of skin, especially on the heels, hips or lower back</li>
+        <li>New hallucinations, low mood, or agitation that puts anyone at risk</li>
+      </ul>
+      <h3>Call the emergency number now for</h3>
+      <ul class="sub tight">
+        <li>Chest pain, severe breathlessness, or blue or grey lips</li>
+        <li>Signs of stroke: face drooping, arm weakness, slurred speech</li>
+        <li>A seizure lasting more than 5 minutes, or not waking up afterwards</li>
+        <li>Unconsciousness, or very low blood sugar that does not improve</li>
+      </ul>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Easier to see and hear</h2>
+      <label class="label" for="optSize">Text size</label>
+      <select id="optSize" class="input">
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Extra large</option>
+      </select>
+      <label class="toggle"><input id="optContrast" type="checkbox"> High contrast</label>
+      <label class="toggle"><input id="optNight" type="checkbox"> Night mode, always</label>
+      <label class="toggle"><input id="optEvening" type="checkbox" checked> Calmer screen from 5pm to 7am</label>
+      <label class="toggle"><input id="optVoice" type="checkbox" checked> Speak out loud</label>
+      <label class="toggle"><input id="optVibrate" type="checkbox" checked> Vibrate for alerts</label>
+      <label class="label" for="optRate">Speaking speed</label>
+      <select id="optRate" class="input">
+        <option value="0.7">Slow</option>
+        <option value="0.85">A little slow</option>
+        <option value="1">Normal</option>
+      </select>
+      <label class="label" for="optVoiceName">Voice</label>
+      <select id="optVoiceName" class="input"><option value="">Phone’s default voice</option></select>
+      <label class="label" for="optWater">Daily water goal (glasses)</label>
+      <select id="optWater" class="input">
+        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option><option value="10">10</option><option value="12">12</option>
+      </select>
+      <p class="sub">Some people need to limit fluids, for example with heart or kidney problems. Follow the doctor’s advice.</p>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Reminder alerts</h2>
+      <p id="notifyText" class="sub"></p>
+      <button class="btn btn-soft" type="button" data-action="enable-notify">🔔 Allow reminder alerts</button>
+      <p class="sub">Reminders sound when this app is open. Keep the phone charged and the app open on screen for the most reliable alerts.</p>
+    </div>
+
+    <div class="card carer-only">
+      <h2>Backup</h2>
+      <p class="sub">Everything is stored only on this phone. Save a backup file now and then, or use it to copy the setup to a new phone.</p>
+      <button class="btn btn-soft" type="button" data-action="export">⬇️ Save backup file</button>
+      <label class="label" for="importFile">Restore from a backup file</label>
+      <input id="importFile" class="input" type="file" accept="application/json,.json">
+      <button class="btn btn-tiny" type="button" data-action="restart-setup">Run first-time setup again</button>
+    </div>
+
+    <div class="card carer-only">
       <h2>Last check-in</h2>
       <p id="checkInText" class="sub">No check-in yet.</p>
     </div>
@@ -211,15 +581,16 @@
 <nav class="nav" aria-label="Main">
   <button class="nav-btn is-active" type="button" data-tab="home">🏠<span>Home</span></button>
   <button class="nav-btn" type="button" data-tab="today">📅<span>Today</span></button>
-  <button class="nav-btn" type="button" data-tab="people">👪<span>People</span></button>
+  <button class="nav-btn" type="button" data-tab="health">🩺<span>Health</span></button>
+  <button class="nav-btn" type="button" data-tab="talk">🗣️<span>Talk</span></button>
   <button class="nav-btn" type="button" data-tab="me">🪪<span>Me</span></button>
-  <button class="nav-btn" type="button" data-tab="more">⚙️<span>More</span></button>
+  <button class="nav-btn" type="button" data-tab="care">🤝<span>Care</span></button>
 </nav>
 
 <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
   <div class="overlay-card">
     <h2 id="overlayTitle">You are safe</h2>
-    <p id="overlayBody" class="sub"></p>
+    <div id="overlayBody" class="sub overlay-body"></div>
     <div id="breathWrap" class="breath-wrap hidden">
       <div id="breathCircle" class="breath-circle"></div>
       <p id="breathCue" class="breath-cue">Breathe in</p>
@@ -227,6 +598,8 @@
     <div id="overlayActions" class="overlay-actions"></div>
   </div>
 </div>
+
+<div id="printArea" class="print-area" aria-hidden="true"></div>
 
 <script src="app.js"></script>
 <script>
