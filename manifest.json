@@ -1,10 +1,24 @@
 {
-  "name": "Dementia Care Companion",
-  "short_name": "CareCompanion",
+  "name": "Care Companion",
+  "short_name": "Care Companion",
+  "description": "A calm companion for anyone who needs extra care: reminders, medicines, health readings, quick help, a talking board, and tools for family and carers.",
+  "lang": "en",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f4f7fb",
   "theme_color": "#2563eb",
-  "description": "Calm orientation, reminders, family faces, and caregiver help.",
-  "icons": []
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Today", "url": "./index.html#today" },
+    { "name": "Health readings", "url": "./index.html#health" },
+    { "name": "Talk for me", "url": "./index.html#talk" }
+  ]
 }
