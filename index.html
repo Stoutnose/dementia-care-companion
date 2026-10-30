@@ -79,6 +79,7 @@
         <button class="btn btn-soft" type="button" data-action="read-calm">🔊 Read this</button>
         <button class="btn btn-soft" type="button" data-action="grounding">🖐️ Notice 5 things</button>
       </div>
+      <button id="calmMemoryBtn" class="btn btn-soft hidden" type="button" data-action="memory-play">📖 Look at my memories</button>
     </div>
   </section>
 
@@ -315,6 +316,38 @@
         <label class="label" for="personPhoto">Photo</label>
         <input id="personPhoto" class="input" type="file" accept="image/*">
         <button class="btn btn-main" type="button" data-action="add-person">Save person</button>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Memory book</h2>
+      <p class="sub">Photos and voices from my life. Tap one to see it and hear about it.</p>
+      <button id="memoryPlayBtn" class="btn btn-main hidden" type="button" data-action="memory-play">▶️ Play all memories</button>
+      <div id="memoryGrid" class="people-grid"></div>
+      <details class="setup carer-only">
+        <summary>Add a memory</summary>
+        <label class="label" for="memTitle">Title</label>
+        <input id="memTitle" class="input" placeholder="Our wedding day">
+        <label class="label" for="memPhoto">Photo</label>
+        <input id="memPhoto" class="input" type="file" accept="image/*">
+        <label class="label" for="memYear">When (optional)</label>
+        <input id="memYear" class="input" placeholder="1978">
+        <label class="label" for="memCaption">What happened, in a few words</label>
+        <textarea id="memCaption" class="input textarea" rows="2" placeholder="You and Mum at the temple in Hyderabad. Everyone danced all night."></textarea>
+        <p class="label">Voice note from family (optional)</p>
+        <p class="sub">Record a short message about this memory, in your own voice. If there is no voice note, the words above are read out.</p>
+        <div class="help-grid">
+          <button id="memVoiceRecord" class="btn btn-soft" type="button" data-action="voice-record">🎙️ Record</button>
+          <button id="memVoiceStop" class="btn btn-danger hidden" type="button" data-action="voice-stop">⏹ Stop</button>
+          <button id="memVoiceClear" class="btn btn-soft hidden" type="button" data-action="voice-clear">🗑️ Remove</button>
+        </div>
+        <p id="memVoiceStatus" class="sub" aria-live="polite"></p>
+        <audio id="memVoicePreview" class="voice-preview hidden" controls></audio>
+        <label class="label" for="memVoiceFile">Or choose a voice note file</label>
+        <input id="memVoiceFile" class="input" type="file" accept="audio/*">
+        <label class="label" for="memBy">Whose voice is it?</label>
+        <input id="memBy" class="input" placeholder="Anna, your daughter">
+        <button class="btn btn-main" type="button" data-action="add-memory">Save memory</button>
       </details>
     </div>
 

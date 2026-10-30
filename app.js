@@ -4,7 +4,8 @@
  * Care Companion
  * A calm companion for anyone who needs extra care and attention: older adults,
  * memory loss, chronic illness, disability, recovery after surgery or stroke, and more.
- * Everything is stored on this device only (localStorage). Nothing is sent anywhere
+ * Everything is stored on this device only (localStorage, plus IndexedDB for memory
+ * book photos and voice notes). Nothing is sent anywhere
  * unless the person taps Call, Text, Share or Send my location.
  */
 
@@ -15,6 +16,8 @@ const LOG_LIMIT = 1500;
 const VITAL_LIMIT = 800;
 const DUE_WINDOW = 10; // minutes after a reminder time in which it can still fire
 const CHECKIN_GRACE = 5; // minutes before an unanswered check-in sounds the alarm
+const VOICE_MAX_SECONDS = 180; // longest voice note for the memory book
+const MEMORY_GAP = 5000; // pause between memories when playing them all
 
 /* ---------------- care focus ---------------- */
 
@@ -238,7 +241,8 @@ const LOG_LABELS = {
   heart: "❤️ Chest pain or racing heart",
   stroke: "🧩 Stroke signs check",
   overwhelmed: "🌧️ Felt overwhelmed",
-  talk: "🗣️ Said with Talk"
+  talk: "🗣️ Said with Talk",
+  memory: "📖 Looked at a memory"
 };
 const DISTRESS = ["confused", "lost", "pain", "fall", "sos", "emergency", "unwell", "breathless", "heart", "seizure", "overwhelmed"];
 
@@ -264,6 +268,7 @@ const defaultState = () => ({
   helper: { name: "", phone: "", backupName: "", backupPhone: "", emergency: "112", crisisName: "", crisisPhone: "" },
   note: { text: "", author: "" },
   people: [],
+  memories: [], // { id, title, year, caption, by, photo: bool, voice: bool, at } – media lives in IndexedDB
   reminders: [],
   schedule: [
     { id: "s1", time: "08:00", text: "Breakfast" },
@@ -326,6 +331,15 @@ let alarmNodes = null;
 let alarmStopTimer = null;
 let recognizer = null;
 let groundStep = 0;
+let memoryIndex = 0;
+let memoryAuto = false;
+let memoryTimer = null;
+let memoryAudio = null;
+let recorder = null;
+let recordStream = null;
+let recordTimer = null;
+let pendingVoice = null; // Blob of a voice note waiting to be saved
+const mediaUrls = {}; // IndexedDB key -> object URL, kept while the page is open
 
 /* ---------------- storage ---------------- */
 
@@ -348,7 +362,7 @@ function migrate(s) {
     const v = s.medsDone[id];
     if (typeof v === "string") s.medsDone[id] = v ? { date: v, at: "" } : null;
   });
-  ["log", "qa", "activities", "vitals", "exercises", "appointments", "timers", "phrases", "checkTimes", "journal", "focus", "people", "reminders", "schedule", "meds"]
+  ["log", "qa", "activities", "vitals", "exercises", "appointments", "timers", "phrases", "checkTimes", "journal", "focus", "people", "memories", "reminders", "schedule", "meds"]
     .forEach((k) => { if (!Array.isArray(s[k])) s[k] = []; });
   ["prnDoses", "exercisesDone", "fired", "checks", "scheduleDone", "medsDone", "ranges"]
     .forEach((k) => { if (!isPlainObject(s[k])) s[k] = {}; });
@@ -2151,6 +2165,7 @@ function renderAll() {
   renderExercises();
   renderPhrases();
   renderPeople();
+  renderMemories();
   renderMe();
   renderFocus();
   renderHelper();
@@ -2175,6 +2190,7 @@ function stopTimers() {
     clearInterval(seizureTimer);
     seizureTimer = null;
   }
+  stopMemoryPlayback();
 }
 
 function closeOverlay() {
@@ -2306,6 +2322,7 @@ function confusedHelp() {
     body,
     actions:
       btn("btn-soft", "breathe", "🌬️ Breathe with me") +
+      (state.memories.length ? btn("btn-soft", "memory-play", "📖 Look at my memories") : "") +
       btn("btn-danger", "sos", "🚨 Call helper") +
       btn("btn-ok", "check-in", "✅ I am okay") +
       closeBtn()
@@ -2971,11 +2988,9 @@ function addCheckTime() {
   renderCheckTimes();
 }
 
-async function fileToDataUrl(file) {
-  if (!file) return "";
+async function scaledCanvas(file, max) {
   const img = await blobToImage(file);
   const canvas = document.createElement("canvas");
-  const max = 360;
   let { width, height } = img;
   if (width > height && width > max) {
     height = height * max / width;
@@ -2986,8 +3001,23 @@ async function fileToDataUrl(file) {
   }
   canvas.width = Math.round(width);
   canvas.height = Math.round(height);
-  canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL("image/jpeg", 0.72);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; // JPEG has no transparency; keep see-through parts white, not black
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+async function fileToDataUrl(file) {
+  if (!file) return "";
+  return (await scaledCanvas(file, 360)).toDataURL("image/jpeg", 0.72);
+}
+
+async function fileToJpegBlob(file, max) {
+  const canvas = await scaledCanvas(file, max);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("no image"))), "image/jpeg", 0.8);
+  });
 }
 
 function blobToImage(file) {
@@ -3054,6 +3084,339 @@ function sayPerson(id) {
       closeBtn() +
       `<button class="btn btn-tiny carer-only" type="button" data-action="del-person" data-id="${person.id}">Remove this person</button>`
   });
+}
+
+/* ---------------- memory book ---------------- */
+
+// Photos and voice notes are too big for localStorage, so they are kept in IndexedDB.
+// Keys are "ph:<memoryId>" and "vo:<memoryId>".
+
+let mediaDb = null;
+
+function openMediaDb() {
+  if (mediaDb) return mediaDb;
+  mediaDb = new Promise((resolve, reject) => {
+    if (!window.indexedDB) return reject(new Error("no indexedDB"));
+    const req = indexedDB.open("care-companion-media", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("media");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  mediaDb.catch(() => { mediaDb = null; });
+  return mediaDb;
+}
+
+async function mediaTx(mode, fn) {
+  const db = await openMediaDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("media", mode);
+    const result = fn(tx.objectStore("media"));
+    tx.oncomplete = () => resolve(result && "result" in result ? result.result : undefined);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
+const mediaGet = (key) => mediaTx("readonly", (store) => store.get(key));
+const mediaPut = (key, blob) => mediaTx("readwrite", (store) => { store.put(blob, key); });
+const mediaDel = (keys) => mediaTx("readwrite", (store) => { keys.forEach((k) => store.delete(k)); });
+
+async function mediaUrl(key) {
+  if (mediaUrls[key]) return mediaUrls[key];
+  const blob = await mediaGet(key);
+  if (!blob) return "";
+  mediaUrls[key] = URL.createObjectURL(blob);
+  return mediaUrls[key];
+}
+
+function forgetMediaUrls(keys) {
+  keys.forEach((k) => {
+    if (mediaUrls[k]) URL.revokeObjectURL(mediaUrls[k]);
+    delete mediaUrls[k];
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function exportMedia() {
+  const out = {};
+  for (const m of state.memories) {
+    for (const [flag, key] of [[m.photo, "ph:" + m.id], [m.voice, "vo:" + m.id]]) {
+      if (!flag) continue;
+      const blob = await mediaGet(key);
+      if (blob) out[key] = await blobToDataUrl(blob);
+    }
+  }
+  return out;
+}
+
+async function importMedia(media) {
+  const keys = Object.keys(media).filter((k) => /^(ph|vo):/.test(k) && typeof media[k] === "string" && media[k].startsWith("data:"));
+  for (const key of keys) {
+    const blob = await (await fetch(media[key])).blob();
+    forgetMediaUrls([key]);
+    await mediaPut(key, blob);
+  }
+}
+
+function memoryMeta(m) {
+  return [m.year, m.by ? "Voice of " + m.by : ""].filter(Boolean).join(" · ");
+}
+
+function renderMemories() {
+  const grid = $("memoryGrid");
+  $("memoryPlayBtn").classList.toggle("hidden", !state.memories.length);
+  $("calmMemoryBtn").classList.toggle("hidden", !state.memories.length);
+  if (!state.memories.length) {
+    grid.innerHTML = '<p class="empty" style="grid-column:1/-1">Add old photos with a few words, or a voice note from family. Familiar faces and voices can bring comfort on hard days.</p>';
+    return;
+  }
+  grid.innerHTML = state.memories.map((m) => `<button class="memory" type="button" data-action="memory-open" data-id="${m.id}">
+      <span class="memory-thumb" data-photo="${m.photo ? "ph:" + m.id : ""}">${m.photo ? "" : "📖"}</span>
+      <strong>${escapeHtml(m.title)}</strong>
+      <span>${escapeHtml(m.year || "")}${m.voice ? " 🔊" : ""}</span>
+    </button>`).join("");
+  grid.querySelectorAll("[data-photo]").forEach(async (el) => {
+    const key = el.dataset.photo;
+    if (!key) return;
+    try {
+      const url = await mediaUrl(key);
+      if (url) el.style.backgroundImage = `url("${url}")`;
+    } catch { /* thumbnail stays plain */ }
+  });
+}
+
+function stopMemoryPlayback() {
+  if (memoryTimer) {
+    clearTimeout(memoryTimer);
+    memoryTimer = null;
+  }
+  if (memoryAudio) {
+    memoryAudio.onended = null;
+    memoryAudio.pause();
+    memoryAudio = null;
+  }
+}
+
+function memorySpeech(m) {
+  return [m.title, m.year ? "In " + m.year + "." : "", m.caption].filter(Boolean).join(". ").replace(/\.\./g, ".");
+}
+
+// Plays the family voice note, or reads the words aloud if there is no voice note
+async function playMemoryVoice(m, auto) {
+  if (!m) return;
+  stopMemoryPlayback();
+  const next = () => {
+    if (auto && memoryAuto) memoryTimer = setTimeout(() => openMemory(memoryIndex + 1, true), MEMORY_GAP);
+  };
+  if (m.voice) {
+    try {
+      const url = await mediaUrl("vo:" + m.id);
+      if (url && state.memories[memoryIndex] === m) {
+        window.speechSynthesis && speechSynthesis.cancel();
+        memoryAudio = new Audio(url);
+        memoryAudio.onended = next;
+        await memoryAudio.play();
+        return;
+      }
+    } catch { /* fall back to reading the words */ }
+  }
+  say(memorySpeech(m), true);
+  // Rough reading time, so the slideshow does not move on mid-sentence
+  if (auto) memoryTimer = setTimeout(next, Math.max(4000, memorySpeech(m).split(" ").length * 500));
+}
+
+async function openMemory(index, auto) {
+  const count = state.memories.length;
+  if (!count || index < 0) return;
+  if (auto && index >= count) {
+    memoryAuto = false;
+    say("That was all your memories. You are loved.", true);
+    return openOverlay({
+      title: "That was all of them",
+      html: '<p class="big-line">You are loved.</p>',
+      actions: btn("btn-soft", "memory-play", "🔁 Watch again") + closeBtn()
+    });
+  }
+  memoryIndex = (index + count) % count;
+  const m = state.memories[memoryIndex];
+  openOverlay({
+    title: m.title,
+    html: `<div class="memory-photo-wrap">${m.photo ? '<img class="memory-photo" id="memoryPhoto" alt="">' : '<div class="memory-photo memory-blank">📖</div>'}</div>
+      ${memoryMeta(m) ? `<p class="sub">${escapeHtml(memoryMeta(m))}</p>` : ""}
+      ${m.caption ? `<p class="memory-caption">${escapeHtml(m.caption)}</p>` : ""}
+      <p class="sub">${memoryIndex + 1} of ${count}</p>`,
+    actions:
+      `<div class="help-grid">${btn("btn-soft", "memory-prev", "⏮ Back")}${btn("btn-soft", "memory-next", "Next ⏭")}</div>` +
+      btn("btn-soft", "memory-voice", m.voice ? "🔊 Hear the voice again" : "🔊 Read it again") +
+      (auto ? btn("btn-soft", "memory-stop-auto", "⏸ Stop the slideshow") : btn("btn-soft", "memory-play", "▶️ Play all memories")) +
+      closeBtn() +
+      `<button class="btn btn-tiny carer-only" type="button" data-action="del-memory" data-id="${m.id}">Remove this memory</button>`
+  });
+  memoryAuto = !!auto;
+  if (m.photo) {
+    mediaUrl("ph:" + m.id).then((url) => {
+      const img = $("memoryPhoto");
+      if (img && url && state.memories[memoryIndex] === m) img.src = url;
+    }).catch(() => {});
+  }
+  logEvent("memory", m.title);
+  playMemoryVoice(m, auto);
+}
+
+/* recording a voice note */
+
+function voiceMime() {
+  if (!window.MediaRecorder) return "";
+  return ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+}
+
+function setVoiceStatus(text) {
+  $("memVoiceStatus").textContent = text;
+  $("memVoiceRecord").classList.toggle("hidden", !!recorder);
+  $("memVoiceStop").classList.toggle("hidden", !recorder);
+  $("memVoiceClear").classList.toggle("hidden", !pendingVoice || !!recorder);
+  const preview = $("memVoicePreview");
+  if (preview.src) URL.revokeObjectURL(preview.src);
+  if (pendingVoice && !recorder) {
+    preview.src = URL.createObjectURL(pendingVoice);
+    preview.classList.remove("hidden");
+  } else {
+    preview.removeAttribute("src");
+    preview.classList.add("hidden");
+  }
+}
+
+async function startRecording() {
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
+    return openOverlay({ title: "Recording is not available", body: "This browser can’t record sound. You can choose a voice note file instead, such as one sent on WhatsApp.", actions: closeBtn() });
+  }
+  try {
+    recordStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch {
+    return openOverlay({ title: "Microphone not allowed", body: "Allow the microphone for this app in the browser or phone settings, then try again.", actions: closeBtn() });
+  }
+  const type = voiceMime();
+  const chunks = [];
+  recorder = new MediaRecorder(recordStream, type ? { mimeType: type } : undefined);
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => {
+    recordStream.getTracks().forEach((t) => t.stop());
+    recordStream = null;
+    clearInterval(recordTimer);
+    pendingVoice = chunks.length ? new Blob(chunks, { type: recorder.mimeType || type || "audio/webm" }) : null;
+    recorder = null;
+    $("memVoiceFile").value = "";
+    setVoiceStatus(pendingVoice ? "Voice note ready. Play it below to check it." : "Nothing was recorded. Try again.");
+  };
+  const started = Date.now();
+  recorder.start();
+  setVoiceStatus("Recording… 0:00");
+  recordTimer = setInterval(() => {
+    const secs = Math.floor((Date.now() - started) / 1000);
+    if (secs >= VOICE_MAX_SECONDS) return stopRecording();
+    $("memVoiceStatus").textContent = "Recording… " + Math.floor(secs / 60) + ":" + pad(secs % 60);
+  }, 500);
+}
+
+function stopRecording() {
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+}
+
+function clearPendingVoice() {
+  pendingVoice = null;
+  $("memVoiceFile").value = "";
+  setVoiceStatus("");
+}
+
+function useVoiceFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("audio/")) {
+    $("memVoiceFile").value = "";
+    return openOverlay({ title: "Not a sound file", body: "Choose a voice recording or other sound file.", actions: closeBtn() });
+  }
+  pendingVoice = file;
+  setVoiceStatus("Voice note ready. Play it below to check it.");
+}
+
+let savingMemory = false;
+
+async function addMemory() {
+  if (savingMemory) return; // a big photo can take a moment; ignore a second tap
+  savingMemory = true;
+  try {
+    await saveMemoryForm();
+  } finally {
+    savingMemory = false;
+  }
+}
+
+async function saveMemoryForm() {
+  const title = $("memTitle").value.trim();
+  const file = $("memPhoto").files[0];
+  if (!title) {
+    say("Please write a short title first.");
+    return $("memTitle").focus();
+  }
+  if (recorder) return say("Please stop the recording first.");
+  const m = {
+    id: uid("mem"),
+    title,
+    year: $("memYear").value.trim(),
+    caption: $("memCaption").value.trim(),
+    by: $("memBy").value.trim(),
+    photo: false,
+    voice: false,
+    at: new Date().toISOString()
+  };
+  try {
+    if (file) {
+      let photo;
+      try {
+        photo = await fileToJpegBlob(file, 1024);
+      } catch {
+        return openOverlay({ title: "Photo not added", body: "That photo could not be opened. Try a different picture.", actions: closeBtn() });
+      }
+      await mediaPut("ph:" + m.id, photo);
+      m.photo = true;
+    }
+    if (pendingVoice) {
+      await mediaPut("vo:" + m.id, pendingVoice);
+      m.voice = true;
+    }
+  } catch {
+    mediaDel(["ph:" + m.id, "vo:" + m.id]).catch(() => {});
+    return openOverlay({ title: "Memory not saved", body: "The phone’s storage for this app may be full, or this browser is in private mode. Try a smaller photo or a shorter voice note.", actions: closeBtn() });
+  }
+  state.memories.push(m);
+  if (!save()) {
+    state.memories.pop();
+    mediaDel(["ph:" + m.id, "vo:" + m.id]).catch(() => {});
+    return;
+  }
+  // Ask the browser not to clear the app's storage when space runs low
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  ["memTitle", "memYear", "memCaption", "memBy", "memPhoto"].forEach((id) => { $(id).value = ""; });
+  clearPendingVoice();
+  renderMemories();
+  say("The memory has been added.");
+}
+
+function deleteMemory(id) {
+  const keys = ["ph:" + id, "vo:" + id];
+  state.memories = state.memories.filter((m) => m.id !== id);
+  save();
+  closeOverlay();
+  forgetMediaUrls(keys);
+  mediaDel(keys).catch(() => {});
+  renderMemories();
 }
 
 async function saveProfile() {
@@ -3127,8 +3490,14 @@ function addActivity() {
   renderEditors();
 }
 
-function exportData() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+async function exportData() {
+  const backup = { ...state };
+  try {
+    backup.media = await exportMedia();
+  } catch {
+    backup.media = {};
+  }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "care-companion-backup-" + todayStr() + ".json";
@@ -3143,10 +3512,13 @@ function exportData() {
 function importData(file) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const data = JSON.parse(reader.result);
       if (!isPlainObject(data) || !isPlainObject(data.profile)) throw new Error("bad file");
+      const media = isPlainObject(data.media) ? data.media : {};
+      delete data.media;
+      await importMedia(media);
       state = migrate(merge(defaultState(), data));
       state.lastDay = "";
       state.setupDone = true;
@@ -3447,6 +3819,18 @@ function onAction(action, el) {
       save(); closeOverlay(); return;
     case "close-overlay": return closeOverlay();
     case "say-person": return sayPerson(id);
+    case "add-memory": return addMemory();
+    case "memory-open": return openMemory(state.memories.findIndex((m) => m.id === id), false);
+    case "memory-play": return openMemory(0, true);
+    case "memory-next": return openMemory(memoryIndex + 1, memoryAuto);
+    case "memory-prev": return openMemory(memoryIndex - 1 + state.memories.length, false);
+    case "memory-voice": return playMemoryVoice(state.memories[memoryIndex], false);
+    case "memory-stop-auto":
+      memoryAuto = false;
+      return openMemory(memoryIndex, false);
+    case "voice-record": return startRecording();
+    case "voice-stop": return stopRecording();
+    case "voice-clear": return clearPendingVoice();
     case "take-med": return takeMed(id);
     case "take-prn": return takePrn(id);
     case "take-prn-force":
@@ -3500,6 +3884,9 @@ function onAction(action, el) {
       if (!isCarer()) return;
       state.checkTimes = state.checkTimes.filter((t) => t !== id);
       save(); renderCheckTimes(); return;
+    case "del-memory":
+      if (!isCarer()) return;
+      return deleteMemory(id);
     case "del-person":
       if (!isCarer()) return;
       state.people = state.people.filter((item) => item.id !== id);
@@ -3643,6 +4030,7 @@ $("sleepHours").addEventListener("change", (event) => {
 });
 
 $("importFile").addEventListener("change", (event) => importData(event.target.files[0]));
+$("memVoiceFile").addEventListener("change", (event) => useVoiceFile(event.target.files[0]));
 
 if (window.speechSynthesis) {
   fillVoices();
